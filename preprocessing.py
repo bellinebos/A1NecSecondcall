@@ -25,31 +25,31 @@ plt.subplots_adjust(top=0.85)  # Adjust the title space to avoid overlap
 plt.tight_layout()  # Ensure that subplots do not overlap
 plt.show()
 
-# Remove the 'percentage expenditure' column from the dataset
+# Remove the 'percentage expenditure' column from the dataset as 1303 entries exceed 100%
 data_new = data_original.drop(columns=['percentage expenditure'])
 
-# Drop 'measles' from the dataset
+# Remove the 'measles' column from the dataset as 525 instances reporting over 1000 cases per 1000 people
 data_new = data_new.drop(columns=['Measles '])
 
-# Remove the 'infant deaths' column
-data_new = data_new.drop(columns=['infant deaths'])
-
-# Remove the 'Population' column
-data_new = data_new.drop(columns=['Population'])
-
-# Remove the 'Hepatitis B' column
-data_new = data_new.drop(columns=['Hepatitis B'])
-
-# Drop the 'bmi' column
+# Remove the 'bmi' column from the dataset as values are far outside realistic bounds
 data_new = data_new.drop(columns=[' BMI '])
 
-# Drop the 'under-five deaths' column
+# Remove the 'under-five deaths' column from the dataset as 16 instances where values exceeded 1000 per 1000 persons
 data_new = data_new.drop(columns=['under-five deaths '])
 
-# Drop the 'thinness 5-9' column
+# Remove the 'thinness 5-9' column from the dataset as it has overlap with thinness 1-19
 data_new = data_new.drop(columns=[' thinness 5-9 years'])
 
-# Drop the 'Country' column
+# Remove the 'infant deaths' column from the dataset as it is a subset of the broader measure under-five deaths
+data_new = data_new.drop(columns=['infant deaths'])
+
+# Remove the 'Population' column from the dataset as it has 22.2% missing values
+data_new = data_new.drop(columns=['Population'])
+
+# Remove the 'Hepatitis B' column from the dataset as it has 18.2% missing values
+data_new = data_new.drop(columns=['Hepatitis B'])
+
+# Remove  the 'Country' column from the dataset as it is categorical and too many values for one-hot encoding
 data_new = data_new.drop(columns=['Country'])
 
 # Remove missing values
