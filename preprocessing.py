@@ -21,4 +21,34 @@ plt.subplots_adjust(top=0.85)  # Adjust the title space to avoid overlap
 plt.tight_layout()  # Ensure that subplots do not overlap
 plt.show()
 
-delete variableS: percentage expenditure, measles, bmi, under five deaths, Thinness 5-9 Years, population, hepatitis b, infant deaths, countries
+delete variableS: countries
+
+# Remove the 'percentage expenditure' column from the dataset
+data_new = df_original.drop(columns=['percentage expenditure'])
+
+# Drop 'measles' from the dataset
+data_new = data_new.drop(columns=['Measles '])
+
+# Remove the 'infant deaths' column
+data_new = data_new.drop(columns=['infant deaths'])
+
+# Remove the 'Population' column
+data_new = data_new.drop(columns=['Population'])
+
+# Remove the 'Hepatitis B' column
+data_new = data_new.drop(columns=['Hepatitis B'])
+
+# Drop the 'bmi' column
+data_new = data_new.drop(columns=['BMI'])
+
+# Drop the 'under-five deaths' column
+data_new = data_new.drop(columns=['under-five deaths'])
+
+# Drop the 'thinness 5-9' column
+data_new = data_new.drop(columns=['thinnes 5-9 years'])
+
+# Drop the 'Country' column
+data_new = data_new.drop(columns=['Country'])
+
+# Verify that the column is removed
+print(data_new.columns)
