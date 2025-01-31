@@ -20,3 +20,5 @@ plt.suptitle('Boxplots of all numeric variables of the dataset', fontsize=16)
 plt.subplots_adjust(top=0.85)  # Adjust the title space to avoid overlap
 plt.tight_layout()  # Ensure that subplots do not overlap
 plt.show()
+
+delete variableS: percentage expenditure, measles, bmi, under five deaths, Thinness 5-9 Years, population, hepatitis b, infant deaths, countries
