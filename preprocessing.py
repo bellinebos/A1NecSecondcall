@@ -53,5 +53,7 @@ data_new = data_new.drop(columns=[' thinness 5-9 years'])
 # Drop the 'Country' column
 data_new = data_new.drop(columns=['Country'])
 
-# Verify that the column is removed
-print(data_new.columns)
+# Remove missing values
+data_cleaned = data_new.dropna()
+
+
