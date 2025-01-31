@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 data_original = pd.read_csv('data.csv')
 
 # Show mean, median, min and max values
@@ -25,10 +26,8 @@ plt.subplots_adjust(top=0.85)  # Adjust the title space to avoid overlap
 plt.tight_layout()  # Ensure that subplots do not overlap
 plt.show()
 
-delete variableS: countries
-
 # Remove the 'percentage expenditure' column from the dataset
-data_new = df_original.drop(columns=['percentage expenditure'])
+data_new = data_original.drop(columns=['percentage expenditure'])
 
 # Drop 'measles' from the dataset
 data_new = data_new.drop(columns=['Measles '])
@@ -43,13 +42,13 @@ data_new = data_new.drop(columns=['Population'])
 data_new = data_new.drop(columns=['Hepatitis B'])
 
 # Drop the 'bmi' column
-data_new = data_new.drop(columns=['BMI'])
+data_new = data_new.drop(columns=[' BMI '])
 
 # Drop the 'under-five deaths' column
-data_new = data_new.drop(columns=['under-five deaths'])
+data_new = data_new.drop(columns=['under-five deaths '])
 
 # Drop the 'thinness 5-9' column
-data_new = data_new.drop(columns=['thinnes 5-9 years'])
+data_new = data_new.drop(columns=[' thinness 5-9 years'])
 
 # Drop the 'Country' column
 data_new = data_new.drop(columns=['Country'])
