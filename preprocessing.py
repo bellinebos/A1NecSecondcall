@@ -1,3 +1,7 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 data_original = pd.read_csv('data.csv')
 
 # Show mean, median, min and max values
