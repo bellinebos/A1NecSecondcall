@@ -8,7 +8,11 @@ data_original = pd.read_csv('data.csv')
 # Show mean, median, min and max values
 print(data_original.describe().loc[['mean', '50%', 'min', 'max']])
 
-data_original = pd.get_dummies(data_original, columns=['status'], prefix='status')
+data_original = pd.get_dummies(data_original, columns=['Status'], prefix='Status')
+
+# Convert 'True'/'False' to '1'/'0' for the newly created columns
+data_original['Status_Developed'] = data_original['Status_Developed'].astype(int)
+data_original['Status_Developing'] = data_original['Status_Developing'].astype(int)
 
 # Filter only numeric columns
 numeric_df = data_original.select_dtypes(include=['number'])
