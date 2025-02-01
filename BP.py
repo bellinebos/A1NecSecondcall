@@ -362,4 +362,3 @@ if __name__ == "__main__":
         plt.ylabel("Predicted Values")
         plt.title(f"Predicted vs Actual for Best Combination {i+1}")
         plt.legend()
-        plt.show()
