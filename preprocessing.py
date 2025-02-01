@@ -43,9 +43,6 @@ data_new = data_new.drop(columns=['under-five deaths '])
 # Remove the 'thinness 5-9' column from the dataset as it has overlap with thinness 1-19
 data_new = data_new.drop(columns=[' thinness 5-9 years'])
 
-# Remove the 'infant deaths' column from the dataset as it is a subset of the broader measure under-five deaths
-data_new = data_new.drop(columns=['infant deaths'])
-
 # Remove the 'Population' column from the dataset as it has 22.2% missing values
 data_new = data_new.drop(columns=['Population'])
 
