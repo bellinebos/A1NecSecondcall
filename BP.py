@@ -24,7 +24,7 @@ class NeuralNet:
             "linear": (self.linear, self.linear_derivative),
             "tanh": (self.tanh, self.tanh_derivative)
         }
-        
+
         # Initialize arrays according to document notation
         # ξ (xi) - activations for each layer including input layer
         self.xi = [np.zeros((layer, 1)) for layer in layers]
@@ -276,49 +276,90 @@ def plot_training_history(train_losses, val_losses):
     plt.grid(True)
     plt.show()
 
-def plot_predictions(y_true, y_pred, title):
-    """Create scatter plot of predicted vs actual values."""
-    plt.figure(figsize=(10, 6))
-    plt.scatter(y_true, y_pred, alpha=0.5)
-    plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', lw=2)
-    plt.xlabel('Actual Values')
-    plt.ylabel('Predicted Values')
-    plt.title(title)
-    plt.grid(True)
-    plt.show()
-
 # Main execution
 if __name__ == "__main__":
     # Load and preprocess data
     X_train, y_train, X_test, y_test, y_mean, y_std = load_data("traindata.csv", "testdata.csv")
 
-    # Create and train the neural network
-    layers = [14, 19, 10, 1]  # Example architecture
-    nn = NeuralNet(
-        layers=layers,
-        epochs=1000,
-        learning_rate=0.001,
-        momentum=0.9,
-        activation_function="tanh",
-        validation_split=0.2
-    )
+    # Define the combinations to evaluate
+    combinations = [
+        {'layers': [14, 9, 1], 'epochs': 2000, 'learning_rate': 0.01, 'momentum': 0.9, 'activation': 'relu'},
+        {'layers': [14, 16, 8, 1], 'epochs': 1000, 'learning_rate': 0.001, 'momentum': 0.8, 'activation': 'tanh'},
+        {'layers': [14, 9, 5, 1], 'epochs': 2000, 'learning_rate': 0.01, 'momentum': 0.7, 'activation': 'sigmoid'},
+        {'layers': [14, 10, 1], 'epochs': 1500, 'learning_rate': 0.005, 'momentum': 0.7, 'activation': 'relu'},
+        {'layers': [14, 12, 8, 1], 'epochs': 1000, 'learning_rate': 0.001, 'momentum': 0.9, 'activation': 'tanh'},
+        {'layers': [14, 16, 1], 'epochs': 1000, 'learning_rate': 0.0005, 'momentum': 0.9, 'activation': 'relu'},
+        {'layers': [14, 20, 15, 5, 1], 'epochs': 1500, 'learning_rate': 0.01, 'momentum': 0.9, 'activation': 'sigmoid'},
+        {'layers': [14, 8, 1], 'epochs': 1000, 'learning_rate': 0.005, 'momentum': 0.8, 'activation': 'relu'},
+        {'layers': [14, 9, 1], 'epochs': 1500, 'learning_rate': 0.0001, 'momentum': 0.9, 'activation': 'tanh'},
+        {'layers': [14, 18, 10, 1], 'epochs': 2000, 'learning_rate': 0.001, 'momentum': 0.8, 'activation': 'relu'}
+        ]
 
-    # Split data and train
-    X_train_split, y_train_split, X_val, y_val = nn.split_data(X_train, y_train)
-    train_losses, val_losses = nn.loss_epochs(X_train_split.T, y_train_split.T, X_val.T, y_val.T)
+ # Initialize an empty list to store performance results
+    performance_results = []
 
-    # Make predictions
-    predictions_std = nn.predict(X_test.T)
-    predictions = destandardize(predictions_std, y_mean, y_std)
-    y_test_original = destandardize(y_test, y_mean, y_std)
+    # Iterate over combinations and evaluate
+    for comb in combinations:
+        nn = NeuralNet(
+            layers=comb['layers'],
+            epochs=comb['epochs'],
+            learning_rate=comb['learning_rate'],
+            momentum=comb['momentum'],
+            activation_function=comb['activation'],
+            validation_split=0.2
+        )
 
-    # Evaluate the model
-    mse, mae, mape = evaluate_model(y_test_original, predictions)
-    print(f"\nModel Performance:")
-    print(f"MSE: {mse:.4f}")
-    print(f"MAE: {mae:.4f}")
-    print(f"MAPE: {mape:.4f}%")
+        # Split data and train the network
+        X_train_split, y_train_split, X_val, y_val = nn.split_data(X_train, y_train)
+        train_losses, val_losses = nn.loss_epochs(X_train_split.T, y_train_split.T, X_val.T, y_val.T)
 
-    # Plot results
-    plot_training_history(train_losses, val_losses)
-    plot_predictions(y_test_original, predictions, "Predicted vs Actual Values")
+        # Make predictions
+        predictions_std = nn.predict(X_test.T)
+        predictions = destandardize(predictions_std, y_mean, y_std)
+        y_test_original = destandardize(y_test, y_mean, y_std)
+
+        # Evaluate the model
+        mse, mae, mape = evaluate_model(y_test_original, predictions)
+
+        # Store the performance results along with the combination
+        performance_results.append({
+            'combination': comb,
+            'mse': mse,
+            'mae': mae,
+            'mape': mape,
+            'train_losses': train_losses,
+            'val_losses': val_losses,
+            'predictions': predictions,
+            'y_test_original': y_test_original
+        })
+
+    # Print evaluation metrics (MSE, MAE, MAPE) for all combinations
+    print("Evaluation metrics for all combinations:")
+    for i, result in enumerate(performance_results):
+        print(f"\nCombination {i+1}: {result['combination']}")
+        print(f"MSE: {result['mse']}, MAE: {result['mae']}, MAPE: {result['mape']}")
+
+    # Sort the results by MSE (or another metric)
+    sorted_results = sorted(performance_results, key=lambda x: x['mse'])
+
+    # Select the top 2 combinations based on MSE (or another metric)
+    best_two = sorted_results[:2]
+
+    # Print evaluation metrics (MSE, MAE, MAPE) for each combination
+    for i, best in enumerate(best_two):
+        print(f"\nBest combination {i+1}: {best['combination']}")
+        print(f"MSE: {best['mse']}, MAE: {best['mae']}, MAPE: {best['mape']}")
+
+        # Plot training and validation losses
+        plot_training_history(best['train_losses'], best['val_losses'])
+
+        # Plot Predicted vs Actual for the two best models
+        plt.figure(figsize=(10, 6))
+        plt.scatter(best['y_test_original'], best['predictions'], color='blue', label='Predicted vs Actual')
+        plt.plot([min(best['y_test_original']), max(best['y_test_original'])], 
+                 [min(best['y_test_original']), max(best['y_test_original'])], color='red', label='Ideal Line')
+        plt.xlabel("Actual Values")
+        plt.ylabel("Predicted Values")
+        plt.title(f"Predicted vs Actual for Best Combination {i+1}")
+        plt.legend()
+        plt.show()
