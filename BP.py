@@ -17,6 +17,14 @@ class NeuralNet:
         self.validation_split = validation_split
         self.fact = activation_function
 
+        # Define activation functions and their derivatives
+        self.activations = {
+            "sigmoid": (self.sigmoid, self.sigmoid_derivative),
+            "relu": (self.relu, self.relu_derivative),
+            "linear": (self.linear, self.linear_derivative),
+            "tanh": (self.tanh, self.tanh_derivative)
+        }
+        
         # Initialize arrays according to document notation
         # ξ (xi) - activations for each layer including input layer
         self.xi = [np.zeros((layer, 1)) for layer in layers]
