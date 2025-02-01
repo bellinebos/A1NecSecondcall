@@ -51,58 +51,6 @@ class NeuralNet:
         self.d_w_prev = [np.zeros_like(w) for w in self.w]
         self.d_theta_prev = [np.zeros_like(t) for t in self.theta]
 
-    def forward(self, X):
-        """
-        Implementation of feed-forward propagation according to equations 6-9 in the document
-        """
-        # Equation 6: Input layer activation
-        self.xi[0] = X
-        
-        # Equations 7-8: Calculate fields and activations for all other layers
-        for l in range(1, self.L):
-            # Equation 8: Calculate fields
-            self.h[l] = np.dot(self.w[l-1], self.xi[l-1]) - self.theta[l-1]
-            
-            # Equation 7: Calculate activations using g(h)
-            self.xi[l] = self.activation_function(self.h[l])
-        
-        # Note: output o(x) is automatically stored in self.xi[-1] (Equation 9)
-
-    def backpropagate(self, X, y):
-        """
-        Implementation of error back-propagation according to equations 11-14 in the document
-        """
-        # Forward pass first
-        self.forward(X)
-        
-        # Equation 11: Calculate delta for output layer
-        self.delta[-1] = self.activation_derivative(self.h[-1]) * (self.xi[-1] - y)
-        
-        # Equation 12: Back-propagate deltas to hidden layers
-        for l in range(self.L-2, 0, -1):
-            self.delta[l-1] = self.activation_derivative(self.h[l]) * np.dot(self.w[l].T, self.delta[l])
-        
-        # Equation 14: Calculate weight and threshold changes with momentum
-        for l in range(self.L-1):
-            # Weight changes
-            self.d_w[l] = -self.learning_rate * np.dot(self.delta[l], self.xi[l].T) + \
-                         self.momentum * self.d_w_prev[l]
-            
-            # Threshold changes
-            self.d_theta[l] = self.learning_rate * self.delta[l] + \
-                            self.momentum * self.d_theta_prev[l]
-            
-            # Store current changes for next iteration's momentum
-            self.d_w_prev[l] = self.d_w[l]
-            self.d_theta_prev[l] = self.d_theta[l]
-            
-            # Equation 15: Update weights and thresholds
-            self.w[l] += self.d_w[l]
-            self.theta[l] += self.d_theta[l]
-        
-        # Return error for this pattern
-        return np.mean((self.xi[-1] - y) ** 2)
-
     def sigmoid(self, z):
         """Equation 10: Sigmoid activation function"""
         return 1 / (1 + np.exp(-z))
