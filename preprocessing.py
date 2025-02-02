@@ -44,6 +44,9 @@ data_new = data_new.drop(columns=[' BMI '])
 # Remove the 'under-five deaths' column from the dataset as 16 instances where values exceeded 1000 per 1000 persons
 data_new = data_new.drop(columns=['under-five deaths '])
 
+# Remove the 'year' column from the dataset as it doesnt add relevance
+data_new = data_new.drop(columns=['Year'])
+
 # Remove the 'thinness 5-9' column from the dataset as it has overlap with thinness 1-19
 data_new = data_new.drop(columns=[' thinness 5-9 years'])
 
