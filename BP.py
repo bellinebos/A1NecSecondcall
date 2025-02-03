@@ -1,312 +1,264 @@
-import numpy as np 
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.preprocessing import LabelEncoder
-from scipy import stats
-from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
+import matplotlib.pyplot as plt
 
 class NeuralNet:
-    def __init__(self, layers, epochs, learning_rate, momentum, activation_function, validation_split=0.2):
-        self.L = len(layers)  # Number of layers
-        self.n = layers  # Number of neurons in each layer
-        self.epochs = epochs
-        self.learning_rate = learning_rate  # η (eta) in the document
-        self.momentum = momentum  # α (alpha) in the document
+    def __init__(self, num_layers, units_per_layer, num_epochs=1000, learning_rate=0.01, 
+                 momentum=0.9, activation='sigmoid', validation_split=0.2):
+        self.L = num_layers
+        self.n = units_per_layer
+        self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.fact = activation
         self.validation_split = validation_split
-        self.fact = activation_function
-
-        # Define activation functions and their derivatives
-        self.activations = {
-            "sigmoid": (self.sigmoid, self.sigmoid_derivative),
-            "relu": (self.relu, self.relu_derivative),
-            "linear": (self.linear, self.linear_derivative),
-            "tanh": (self.tanh, self.tanh_derivative)
-        }
-
-        # Initialize arrays according to document notation
-        # ξ (xi) - activations for each layer including input layer
-        self.xi = [np.zeros((layer, 1)) for layer in layers]
         
-        # h - fields for each layer (except input layer)
-        self.h = [np.zeros((layer, 1)) for layer in layers]
+        # Initialize arrays following equations (7)-(9)
+        self.h = [np.zeros(n) for n in self.n]  # Fields h(l)_i
+        self.xi = [np.zeros(n) for n in self.n]  # Activations ξ(l)_i
         
-        # ω (omega) - weights between layers
-        self.w = [np.random.randn(layers[l], layers[l-1]) * 0.01 for l in range(1, self.L)]
-        
-        # θ (theta) - thresholds/biases for each layer except input
-        self.theta = [np.zeros((layer, 1)) for layer in layers[1:]]
-        
-        # Δ (delta) - error terms for each layer except input
-        self.delta = [np.zeros((layer, 1)) for layer in layers[1:]]
-        
-        # δω (delta_w) - weight changes
-        self.d_w = [np.zeros_like(w) for w in self.w]
-        
-        # δθ (delta_theta) - threshold changes
-        self.d_theta = [np.zeros_like(t) for t in self.theta]
-        
-        # Previous changes for momentum
-        self.d_w_prev = [np.zeros_like(w) for w in self.w]
-        self.d_theta_prev = [np.zeros_like(t) for t in self.theta]
-
-    def sigmoid(self, z):
-        """Equation 10: Sigmoid activation function"""
-        return 1 / (1 + np.exp(-z))
-
-    def sigmoid_derivative(self, z):
-        """Equation 13: Derivative of sigmoid function"""
-        sig = self.sigmoid(z)
-        return sig * (1 - sig)
-    
-    def relu(self, z):
-        return np.maximum(0, z)
-
-    def relu_derivative(self, z):
-        return np.where(z > 0, 1, 0)
-
-    def linear(self, z):
-        return z
-
-    def linear_derivative(self, z):
-        return np.ones_like(z)
-
-    def tanh(self, z):
-        return np.tanh(z)
-
-    def tanh_derivative(self, z):
-        return 1 - np.tanh(z) ** 2
-
-    def activation_function(self, z, is_output_layer=False):
-        activation_func, _ = self.activations[self.fact]
-        return activation_func(z)
-
-    def activation_derivative(self, z, is_output_layer=False):
-        _, activation_deriv = self.activations[self.fact]
-        return activation_deriv(z)
-
-    def forward(self, X):
-        self.xi[0] = X  # Input layer activations
-        
+        # Initialize weights with small random values
+        self.w = [None]  # w[1] is not used as per document notation
         for l in range(1, self.L):
-            # Calculate fields (h) for current layer
-            self.h[l] = np.dot(self.w[l-1], self.xi[l-1]) + self.theta[l-1]
-            # Calculate activations (xi) using the activation function
-            self.xi[l] = self.activation_function(self.h[l], is_output_layer=(l == self.L-1))
-
-    def backpropagate(self, X, y):
-        # Forward pass
-        self.forward(X)
-        
-        # Output layer error
-        output_error = self.xi[-1] - y
-        self.delta[-1] = output_error * self.activation_derivative(self.h[-1], is_output_layer=True)
-        
-        # Hidden layers error
-        for l in range(self.L-2, 0, -1):
-            self.delta[l-1] = np.dot(self.w[l].T, self.delta[l]) * self.activation_derivative(self.h[l])
-        
-        # Update weights and biases with momentum
-        for l in range(self.L-1):
-            # Calculate weight and bias changes
-            self.d_w[l] = -self.learning_rate * np.dot(self.delta[l], self.xi[l].T)
-            self.d_theta[l] = -self.learning_rate * np.sum(self.delta[l], axis=1, keepdims=True)
+            self.w.append(np.random.randn(self.n[l], self.n[l-1]) * np.sqrt(2.0/self.n[l-1]))
             
-            # Apply momentum
-            self.d_w[l] += self.momentum * self.d_w_prev[l]
-            self.d_theta[l] += self.momentum * self.d_theta_prev[l]
+        # Initialize thresholds
+        self.theta = [None]  # theta[1] is not used
+        for l in range(1, self.L):
+            self.theta.append(np.random.randn(self.n[l]) * 0.1)
+        
+        # Arrays for backpropagation equations (11)-(12)
+        self.delta = [np.zeros(n) for n in self.n]  # Δ(l)_i
+        
+        # Arrays for weight and threshold updates equation (14)
+        self.d_w = [None] + [np.zeros((self.n[l], self.n[l-1])) for l in range(1, self.L)]
+        self.d_theta = [None] + [np.zeros(self.n[l]) for l in range(1, self.L)]
+        
+        # Arrays for momentum
+        self.d_w_prev = [None] + [np.zeros((self.n[l], self.n[l-1])) for l in range(1, self.L)]
+        self.d_theta_prev = [None] + [np.zeros(self.n[l]) for l in range(1, self.L)]
+        
+        self.train_errors = []
+        self.val_errors = []
+    
+    def activation(self, h, derivative=False):
+        """Implementation of g(h) and g'(h) from equations (10) and (13)"""
+        if self.fact == 'sigmoid':
+            if not derivative:
+                return 1 / (1 + np.exp(-h))  # Equation (10)
+            else:
+                g_h = self.activation(h)
+                return g_h * (1 - g_h)  # Equation (13)
+        elif self.fact == 'relu':
+            if not derivative:
+                return np.maximum(0, h)
+            else:
+                return (h > 0).astype(float)
+        elif self.fact == 'tanh':
+            if not derivative:
+                return np.tanh(h)
+            else:
+                return 1 - np.tanh(h)**2
+        else:  # linear
+            if not derivative:
+                return h
+            else:
+                return 1
+    
+    def feed_forward(self, x):
+        """Implementation of equations (6)-(9)"""
+        # Equation (6): Set input layer
+        self.xi[0] = x
+        
+        # Equations (7)-(8): Calculate activations for each layer
+        for l in range(1, self.L):
+            # Equation (8): Calculate fields
+            self.h[l] = np.dot(self.w[l], self.xi[l-1]) - self.theta[l]
+            # Equation (7): Calculate activations
+            self.xi[l] = self.activation(self.h[l])
+        
+        # Equation (9): Return output
+        return self.xi[self.L-1]
+    
+    def process_mini_batch(self, X_batch, y_batch):
+        """Implementation of equation (16) for partial batched BP"""
+        # Initialize accumulators for equation (16)
+        delta_w = [None] + [np.zeros_like(w) for w in self.w[1:]]
+        delta_theta = [None] + [np.zeros_like(theta) for theta in self.theta[1:]]
+        
+        # For each pattern in batch P
+        for x, z in zip(X_batch, y_batch):
+            # Forward pass
+            y = self.feed_forward(x)
             
-            # Update weights and biases
+            # Equation (11): Output layer deltas
+            self.delta[self.L-1] = self.activation(self.h[self.L-1], derivative=True) * (y - z)
+            
+            # Equation (12): Hidden layer deltas
+            for l in range(self.L-2, 0, -1):
+                self.delta[l] = self.activation(self.h[l], derivative=True) * \
+                               np.dot(self.w[l+1].T, self.delta[l+1])
+            
+            # Accumulate gradients for batch update (equation 16)
+            for l in range(1, self.L):
+                delta_w[l] += np.outer(self.delta[l], self.xi[l-1])
+                delta_theta[l] += self.delta[l]
+        
+        # Update weights and thresholds (equation 16)
+        for l in range(1, self.L):
+            self.d_w[l] = -self.learning_rate * delta_w[l] + self.momentum * self.d_w_prev[l]
             self.w[l] += self.d_w[l]
-            self.theta[l] += self.d_theta[l]
+            self.d_w_prev[l] = self.d_w[l].copy()
             
-            # Store current changes for next iteration's momentum
-            self.d_w_prev[l] = self.d_w[l]
-            self.d_theta_prev[l] = self.d_theta[l]
-        
-        return np.mean(output_error**2)  # Return MSE loss
-
+            self.d_theta[l] = self.learning_rate * delta_theta[l] + \
+                             self.momentum * self.d_theta_prev[l]
+            self.theta[l] += self.d_theta[l]
+            self.d_theta_prev[l] = self.d_theta[l].copy()
+    
+    def calculate_error(self, X, y):
+        """Implementation of equation (5)"""
+        total_error = 0
+        for x, z in zip(X, y):
+            y_pred = self.feed_forward(x)
+            total_error += np.sum((y_pred - z)**2)
+        return total_error / (2 * len(X))
+    
     def fit(self, X, y):
-        """Train the network using backpropagation and return training history."""
-        train_losses = []
+        if self.validation_split > 0:
+            split_idx = int(len(X) * (1 - self.validation_split))
+            indices = np.random.permutation(len(X))
+            X = X[indices]
+            y = y[indices]
+            X_train, X_val = X[:split_idx], X[split_idx:]
+            y_train, y_val = y[:split_idx], y[split_idx:]
+        else:
+            X_train, y_train = X, y
+            X_val, y_val = None, None
         
-        for epoch in range(self.epochs):
-            # Perform one round of backpropagation and get the loss
-            loss = self.backpropagate(X, y)
-            train_losses.append(loss)
+        batch_size = 5  # As specified in the document
+        
+        for epoch in range(self.num_epochs):
+            indices = np.random.permutation(len(X_train))
+            X_train = X_train[indices]
+            y_train = y_train[indices]
+            
+            for i in range(0, len(X_train), batch_size):
+                X_batch = X_train[i:i+batch_size]
+                y_batch = y_train[i:i+batch_size]
+                self.process_mini_batch(X_batch, y_batch)
+            
+            train_error = self.calculate_error(X_train, y_train)
+            self.train_errors.append(train_error)
+            
+            if X_val is not None:
+                val_error = self.calculate_error(X_val, y_val)
+                self.val_errors.append(val_error)
             
             if epoch % 100 == 0:
-                print(f"Epoch {epoch}/{self.epochs}, Loss: {loss:.4f}")
-        
-        return train_losses
-
+                print(f"Epoch {epoch}/{self.num_epochs}, Error: {train_error:.6f}")
+    
     def predict(self, X):
-        """Perform a forward pass and return predictions."""
-        self.forward(X)
-        return self.xi[-1]
+        return np.array([self.feed_forward(x) for x in X])
+    
+    def loss_epochs(self):
+        return np.array(self.train_errors), np.array(self.val_errors)
 
-    def loss_epochs(self, X_train, y_train, X_val, y_val):
-        """Track training and validation loss over epochs."""
-        train_losses = []
-        val_losses = []
+def scale_data(X, feature_range=(0.1, 0.9)):
+    """Equation (1): Scale features to range [smin, smax]"""
+    smin, smax = feature_range
+    X_min = X.min(axis=0)
+    X_max = X.max(axis=0)
+    return smin + (smax - smin) * (X - X_min) / (X_max - X_min), (X_min, X_max)
 
-        for epoch in range(self.epochs):
-            # Train one epoch and get training loss
-            train_loss = self.backpropagate(X_train, y_train)
-            train_losses.append(train_loss)
-            
-            # Calculate validation loss
-            self.forward(X_val)
-            val_loss = np.mean((self.xi[-1] - y_val) ** 2)
-            val_losses.append(val_loss)
+def inverse_scale(X_scaled, X_min, X_max, feature_range=(0.1, 0.9)):
+    """Equation (2): Inverse scaling of data"""
+    smin, smax = feature_range
+    return X_min + (X_max - X_min) * (X_scaled - smin) / (smax - smin)
 
-        return np.array(train_losses), np.array(val_losses)
-
-    def split_data(self, X, y):
-        """Split data into training and validation sets."""
-        validation_size = int(len(X) * self.validation_split)
-        X_train = X[validation_size:]
-        y_train = y[validation_size:]
-        X_val = X[:validation_size]
-        y_val = y[:validation_size]
-        return X_train, y_train, X_val, y_val
-
-# Utility functions
-def standardize(data):
-    """Standardize the data using z-score normalization."""
-    mean = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
-    standardized_data = (data - mean) / std
-    return standardized_data, mean, std
-
-def destandardize(data, mean, std):
-    """Convert standardized data back to original scale."""
-    return data * std + mean
-
-def load_data(train_data, test_data):
-    """Load and preprocess the data from CSV files."""
-    train = pd.read_csv(train_data)
-    test = pd.read_csv(test_data)
-
-    # Separate features and targets
-    X_train_val = train.iloc[:, :-1].values
-    y_train_val = train.iloc[:, -1].values
-    X_test = test.iloc[:, :-1].values
-    y_test = test.iloc[:, -1].values
-
-    # Standardize
-    X_train_std, X_mean, X_std = standardize(X_train_val)
-    X_test_std = (X_test - X_mean) / X_std
-
-    y_train_std, y_mean, y_std = standardize(y_train_val)
-    y_test_std = (y_test - y_mean) / y_std
-
-    return X_train_std, y_train_std, X_test_std, y_test_std, y_mean, y_std
-
-# Example usage and evaluation
-def evaluate_model(y_true, y_pred):
-    """Calculate evaluation metrics."""
-    mse = np.mean((y_pred - y_true) ** 2)
-    mae = np.mean(np.abs(y_pred - y_true))
-    mape = np.mean(np.abs((y_pred - y_true) / y_true)) * 100
-    return mse, mae, mape
-
-def plot_training_history(train_losses, val_losses):
-    """Plot training and validation loss over epochs."""
-    plt.figure(figsize=(10, 6))
-    plt.plot(train_losses, label='Training Loss')
-    plt.plot(val_losses, label='Validation Loss')
-    plt.title('Loss Over Epochs')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-# Main execution
-if __name__ == "__main__":
-    # Load and preprocess data
-    X_train, y_train, X_test, y_test, y_mean, y_std = load_data("traindata.csv", "testdata.csv")
-
-    # Define the combinations to evaluate
-    combinations = [
-        {'layers': [14, 9, 1], 'epochs': 2000, 'learning_rate': 0.01, 'momentum': 0.9, 'activation': 'relu'},
-        {'layers': [14, 16, 8, 1], 'epochs': 1000, 'learning_rate': 0.001, 'momentum': 0.8, 'activation': 'tanh'},
-        {'layers': [14, 9, 5, 1], 'epochs': 2000, 'learning_rate': 0.01, 'momentum': 0.7, 'activation': 'sigmoid'},
-        {'layers': [14, 10, 1], 'epochs': 1500, 'learning_rate': 0.005, 'momentum': 0.7, 'activation': 'relu'},
-        {'layers': [14, 12, 8, 1], 'epochs': 1000, 'learning_rate': 0.001, 'momentum': 0.9, 'activation': 'tanh'},
-        {'layers': [14, 16, 1], 'epochs': 1000, 'learning_rate': 0.0005, 'momentum': 0.9, 'activation': 'relu'},
-        {'layers': [14, 20, 15, 5, 1], 'epochs': 1500, 'learning_rate': 0.01, 'momentum': 0.9, 'activation': 'sigmoid'},
-        {'layers': [14, 8, 1], 'epochs': 1000, 'learning_rate': 0.005, 'momentum': 0.8, 'activation': 'relu'},
-        {'layers': [14, 9, 1], 'epochs': 1500, 'learning_rate': 0.0001, 'momentum': 0.9, 'activation': 'tanh'},
-        {'layers': [14, 18, 10, 1], 'epochs': 2000, 'learning_rate': 0.001, 'momentum': 0.8, 'activation': 'relu'}
-        ]
-
- # Initialize an empty list to store performance results
-    performance_results = []
-
-    # Iterate over combinations and evaluate
-    for comb in combinations:
-        nn = NeuralNet(
-            layers=comb['layers'],
-            epochs=comb['epochs'],
-            learning_rate=comb['learning_rate'],
-            momentum=comb['momentum'],
-            activation_function=comb['activation'],
+def main():
+    try:
+        # Load data
+        train_data = pd.read_csv('traindata.csv')
+        test_data = pd.read_csv('testdata.csv')
+        
+        X_train = train_data.drop('Life expectancy ', axis=1).values
+        y_train = train_data['Life expectancy '].values
+        X_test = test_data.drop('Life expectancy ', axis=1).values
+        y_test = test_data['Life expectancy '].values
+        
+        # Scale data using equations (1)-(2)
+        X_train_scaled, (X_min, X_max) = scale_data(X_train)
+        X_test_scaled = scale_data(X_test)[0]
+        y_train_scaled, (y_min, y_max) = scale_data(y_train.reshape(-1, 1))
+        y_test_scaled = scale_data(y_test.reshape(-1, 1))[0]
+        
+        y_train_scaled = y_train_scaled.ravel()
+        y_test_scaled = y_test_scaled.ravel()
+        
+        # Create and train model
+        input_size = X_train.shape[1]
+        architecture = [input_size, 32, 16, 1]
+        
+        model = NeuralNet(
+            num_layers=len(architecture),
+            units_per_layer=architecture,
+            num_epochs=1000,
+            learning_rate=0.01,
+            momentum=0.9,
+            activation='sigmoid', 
             validation_split=0.2
         )
-
-        # Split data and train the network
-        X_train_split, y_train_split, X_val, y_val = nn.split_data(X_train, y_train)
-        train_losses, val_losses = nn.loss_epochs(X_train_split.T, y_train_split.T, X_val.T, y_val.T)
-
+        
+        model.fit(X_train_scaled, y_train_scaled)
+        
         # Make predictions
-        predictions_std = nn.predict(X_test.T)
-        predictions = destandardize(predictions_std, y_mean, y_std)
-        y_test_original = destandardize(y_test, y_mean, y_std)
-
-        # Evaluate the model
-        mse, mae, mape = evaluate_model(y_test_original, predictions)
-
-        # Store the performance results along with the combination
-        performance_results.append({
-            'combination': comb,
-            'mse': mse,
-            'mae': mae,
-            'mape': mape,
-            'train_losses': train_losses,
-            'val_losses': val_losses,
-            'predictions': predictions,
-            'y_test_original': y_test_original
-        })
-
-    # Print evaluation metrics (MSE, MAE, MAPE) for all combinations
-    print("Evaluation metrics for all combinations:")
-    for i, result in enumerate(performance_results):
-        print(f"\nCombination {i+1}: {result['combination']}")
-        print(f"MSE: {result['mse']}, MAE: {result['mae']}, MAPE: {result['mape']}")
-
-    # Sort the results by MSE (or another metric)
-    sorted_results = sorted(performance_results, key=lambda x: x['mse'])
-
-    # Select the top 2 combinations based on MSE (or another metric)
-    best_two = sorted_results[:2]
-
-    # Print evaluation metrics (MSE, MAE, MAPE) for each combination
-    for i, best in enumerate(best_two):
-        print(f"\nBest combination {i+1}: {best['combination']}")
-        print(f"MSE: {best['mse']}, MAE: {best['mae']}, MAPE: {best['mape']}")
-
-        # Plot training and validation losses
-        plot_training_history(best['train_losses'], best['val_losses'])
-
-        # Plot Predicted vs Actual for the two best models
+        y_pred_train = model.predict(X_train_scaled)
+        y_pred_test = model.predict(X_test_scaled)
+        
+        # Inverse scale predictions
+        y_pred_train = inverse_scale(y_pred_train.reshape(-1, 1), y_min, y_max).ravel()
+        y_pred_test = inverse_scale(y_pred_test.reshape(-1, 1), y_min, y_max).ravel()
+        
+        # Calculate metrics
+        print("\nTraining Metrics:")
+        mse_train = mean_squared_error(y_train, y_pred_train)
+        mae_train = mean_absolute_error(y_train, y_pred_train)
+        mape_train = mean_absolute_percentage_error(y_train, y_pred_train)
+        print(f"MSE: {mse_train:.4f}")
+        print(f"MAE: {mae_train:.4f}")
+        print(f"MAPE: {mape_train:.4f}")
+        
+        print("\nTest Metrics:")
+        mse_test = mean_squared_error(y_test, y_pred_test)
+        mae_test = mean_absolute_error(y_test, y_pred_test)
+        mape_test = mean_absolute_percentage_error(y_test, y_pred_test)
+        print(f"MSE: {mse_test:.4f}")
+        print(f"MAE: {mae_test:.4f}")
+        print(f"MAPE: {mape_test:.4f}")
+        
+        # Plot results
         plt.figure(figsize=(10, 6))
-        plt.scatter(best['y_test_original'], best['predictions'], color='blue', label='Predicted vs Actual')
-        plt.plot([min(best['y_test_original']), max(best['y_test_original'])], 
-                 [min(best['y_test_original']), max(best['y_test_original'])], color='red', label='Ideal Line')
-        plt.xlabel("Actual Values")
-        plt.ylabel("Predicted Values")
-        plt.title(f"Predicted vs Actual for Best Combination {i+1}")
+        plt.scatter(y_test, y_pred_test, alpha=0.5)
+        plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+        plt.xlabel('Actual Life Expectancy')
+        plt.ylabel('Predicted Life Expectancy')
+        plt.title('Life Expectancy: Predicted vs Actual')
+        plt.tight_layout()
+        plt.show()
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(model.train_errors, label='Training Error')
+        plt.plot(model.val_errors, label='Validation Error')
+        plt.xlabel('Epoch')
+        plt.ylabel('Mean Squared Error')
+        plt.title('Training History')
         plt.legend()
+        plt.tight_layout()
+        plt.show()
+        
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+if __name__ == "__main__":
+    main()
