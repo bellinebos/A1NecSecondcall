@@ -210,7 +210,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.001,
         'momentum': 0.8,
         'activation': 'tanh',
-        'description': '3-layer tanh, wide'
+        'description': '3-layer tanh'
     },
     {
         'layers': [13, 20, 1],
@@ -218,7 +218,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.015,
         'momentum': 0.85,
         'activation': 'relu',
-        'description': '3-layer ReLU, moderate'
+        'description': '3-layer ReLU'
     },
     {
         'layers': [13, 32, 1],
@@ -226,7 +226,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.02,
         'momentum': 0.75,
         'activation': 'sigmoid',
-        'description': '3-layer sigmoid, extra wide'
+        'description': '3-layer sigmoid'
     },
     
     # 4-layer configurations
@@ -236,7 +236,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.001,
         'momentum': 0.8,
         'activation': 'tanh',
-        'description': '4-layer tanh, symmetric'
+        'description': '4-layer tanh'
     },
     {
         'layers': [13, 20, 10, 1],
@@ -244,7 +244,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.015,
         'momentum': 0.85,
         'activation': 'relu',
-        'description': '4-layer ReLU, gradual reduction'
+        'description': '4-layer ReLU'
     },
     {
         'layers': [13, 24, 16, 1],
@@ -252,7 +252,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.005,
         'momentum': 0.9,
         'activation': 'linear',
-        'description': '4-layer linear, moderate'
+        'description': '4-layer linear'
     },
     {
         'layers': [13, 30, 15, 1],
@@ -260,7 +260,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.001,
         'momentum': 0.82,
         'activation': 'sigmoid',
-        'description': '4-layer sigmoid, wide start'
+        'description': '4-layer sigmoid'
     },
     
     # 5-layer configurations
@@ -270,7 +270,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.005,
         'momentum': 0.9,
         'activation': 'tanh',
-        'description': '5-layer tanh, gradual reduction'
+        'description': '5-layer tanh'
     },
     {
         'layers': [13, 24, 18, 12, 1],
@@ -278,7 +278,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.01,
         'momentum': 0.85,
         'activation': 'relu',
-        'description': '5-layer ReLU, careful reduction'
+        'description': '5-layer ReLU'
     },
     {
         'layers': [13, 28, 21, 14, 1],
@@ -286,7 +286,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         'lr': 0.001,
         'momentum': 0.88,
         'activation': 'sigmoid',
-        'description': '5-layer sigmoid, wide reduction'
+        'description': '5-layer sigmoid'
     }
     ]
     
