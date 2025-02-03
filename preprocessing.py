@@ -13,24 +13,21 @@ data_original = pd.get_dummies(data_original, columns=['Status'], prefix='Status
 # Convert 'True'/'False' to '1'/'0' for the newly created columns
 data_original['Status_Developed'] = data_original['Status_Developed'].astype(int)
 data_original['Status_Developing'] = data_original['Status_Developing'].astype(int)
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
 
-# Filter only numeric columns
-numeric_df = data_original.select_dtypes(include=['number'])
+data_original = pd.read_csv('data.csv')
 
-# Plot the boxplots
-plt.subplots(figsize=(20, 8))
+# Show mean, median, min and max values
+print(data_original.describe().loc[['mean', '50%', 'min', 'max']])
 
-count = 1
-for i in numeric_df.columns:
-    plt.subplot(2, 10, count)  # Adjust the layout (2 rows, 10 columns)
-    sns.boxplot(data=numeric_df[i])
-    plt.title(i, fontsize=12)
-    count += 1
+data_original = pd.get_dummies(data_original, columns=['Status'], prefix='Status')
 
-plt.suptitle('Boxplots of all numeric variables of the dataset', fontsize=16)
-plt.subplots_adjust(top=0.85)  # Adjust the title space to avoid overlap
-plt.tight_layout()  # Ensure that subplots do not overlap
-plt.show()
+# Convert 'True'/'False' to '1'/'0' for the newly created columns
+data_original['Status_Developed'] = data_original['Status_Developed'].astype(int)
+data_original['Status_Developing'] = data_original['Status_Developing'].astype(int)
 
 # Remove the 'percentage expenditure' column from the dataset as 1303 entries exceed 100%
 data_new = data_original.drop(columns=['percentage expenditure'])
@@ -44,7 +41,7 @@ data_new = data_new.drop(columns=[' BMI '])
 # Remove the 'under-five deaths' column from the dataset as 16 instances where values exceeded 1000 per 1000 persons
 data_new = data_new.drop(columns=['under-five deaths '])
 
-# Remove the 'year' column from the dataset as it doesnt add relevance
+# Remove the 'year' column from the dataset as year of observation doesnt add relevance in predicting life expanctancy
 data_new = data_new.drop(columns=['Year'])
 
 # Remove the 'thinness 5-9' column from the dataset as it has overlap with thinness 1-19
@@ -63,9 +60,7 @@ data_new = data_new.drop(columns=['Country'])
 data_cleaned = data_new.dropna()
 
 # Save preprocessed dataset to a new CSV file
-datacleaned.to_csv('processeddataset.csv', index=False)
-
-
+data_cleaned.to_csv('processeddataset.csv', index=False)
 
 # splitting data
 # Step 1: Separate input features (X) and output feature (y)
