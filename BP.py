@@ -139,93 +139,93 @@ class NeuralNet:
             self.theta[l] += d_theta
             self.d_theta_prev[l] = d_theta
     
-def calculate_error(self, X, y):
-    """
-    Calculate total error for a set of patterns
-    
-    Parameters:
-    X: Input patterns
-    y: Target outputs
-    """
-    total_error = 0
-    # Process each pattern
-    for x, z in zip(X, y):
-        # Get network output
-        y_pred = self.feed_forward(x)
-        # Add squared error to total
-        total_error += np.sum((y_pred - z)**2)
-    # Return total error (not averaged)
-    return total_error / 2
+    def calculate_error(self, X, y):
+        """
+        Calculate total error for a set of patterns
+        
+        Parameters:
+        X: Input patterns
+        y: Target outputs
+        """
+        total_error = 0
+        # Process each pattern
+        for x, z in zip(X, y):
+            # Get network output
+            y_pred = self.feed_forward(x)
+            # Add squared error to total
+            total_error += np.sum((y_pred - z)**2)
+        # Return total error (not averaged)
+        return total_error / 2
 
-def fit(self, X, y):
-    """
-    Train the neural network
-    
-    Parameters:
-    X: Training input patterns
-    y: Training target outputs
-    """
-    # Split data into training and validation sets if specified
-    if self.validation_split > 0:
-        # Calculate split index
-        split_idx = int(len(X) * (1 - self.validation_split))
-        # Randomly shuffle data
-        indices = np.random.permutation(len(X))
-        X = X[indices]
-        y = y[indices]
-        # Perform split
-        X_train, X_val = X[:split_idx], X[split_idx:]
-        y_train, y_val = y[:split_idx], y[split_idx:]
-    else:
-        # Use all data for training if no validation
-        X_train, y_train = X, y
-        X_val, y_val = None, None
-    
-    n_samples = len(X_train)
-    
-    # Training loop for specified number of epochs
-    for epoch in range(self.num_epochs):
-        # Shuffle training data at start of each epoch
-        indices = np.random.permutation(n_samples)
-        X_train = X_train[indices]
-        y_train = y_train[indices]
+    def fit(self, X, y):
+        """
+        Train the neural network
         
-        # Process mini-batches
-        for i in range(0, n_samples, self.batch_size):
-            # Extract current batch
-            batch_X = X_train[i:i+self.batch_size]
-            batch_y = y_train[i:i+self.batch_size]
-            # Update weights using current batch
-            self.update_weights_batch(batch_X, batch_y)
+        Parameters:
+        X: Training input patterns
+        y: Training target outputs
+        """
+        # Split data into training and validation sets if specified
+        if self.validation_split > 0:
+            # Calculate split index
+            split_idx = int(len(X) * (1 - self.validation_split))
+            # Randomly shuffle data
+            indices = np.random.permutation(len(X))
+            X = X[indices]
+            y = y[indices]
+            # Perform split
+            X_train, X_val = X[:split_idx], X[split_idx:]
+            y_train, y_val = y[:split_idx], y[split_idx:]
+        else:
+            # Use all data for training if no validation
+            X_train, y_train = X, y
+            X_val, y_val = None, None
         
-        # Calculate and store training error
-        train_error = self.calculate_error(X_train, y_train)
-        self.train_errors.append(train_error)
+        n_samples = len(X_train)
         
-        # Calculate and store validation error if using validation set
-        if X_val is not None:
-            val_error = self.calculate_error(X_val, y_val)
-            self.val_errors.append(val_error)
+        # Training loop for specified number of epochs
+        for epoch in range(self.num_epochs):
+            # Shuffle training data at start of each epoch
+            indices = np.random.permutation(n_samples)
+            X_train = X_train[indices]
+            y_train = y_train[indices]
+            
+            # Process mini-batches
+            for i in range(0, n_samples, self.batch_size):
+                # Extract current batch
+                batch_X = X_train[i:i+self.batch_size]
+                batch_y = y_train[i:i+self.batch_size]
+                # Update weights using current batch
+                self.update_weights_batch(batch_X, batch_y)
+            
+            # Calculate and store training error
+            train_error = self.calculate_error(X_train, y_train)
+            self.train_errors.append(train_error)
+            
+            # Calculate and store validation error if using validation set
+            if X_val is not None:
+                val_error = self.calculate_error(X_val, y_val)
+                self.val_errors.append(val_error)
+            
+            # Print progress every 100 epochs
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}/{self.num_epochs}, Total Error: {train_error:.6f}")
         
-        # Print progress every 100 epochs
-        if epoch % 100 == 0:
-            print(f"Epoch {epoch}/{self.num_epochs}, Total Error: {train_error:.6f}")
-    
-    return self
+        return self
 
-def predict(self, X):
-    """
-    Make predictions for new input patterns
-    
-    Parameters:
-    X: Input patterns to predict
-    """
-    # Return predictions for all input patterns
-    return np.array([self.feed_forward(x) for x in X])
+    def predict(self, X):
+        """
+        Make predictions for new input patterns
+        
+        Parameters:
+        X: Input patterns to predict
+        """
+        # Return predictions for all input patterns
+        return np.array([self.feed_forward(x) for x in X])
 
-def loss_epochs(self):
-    """Return error history for training and validation"""
-    return np.array(self.train_errors), np.array(self.val_errors)
+    def loss_epochs(self):
+        """Return error history for training and validation"""
+        return np.array(self.train_errors), np.array(self.val_errors)
 
 
 def scale_data(X, feature_range=(0.1, 0.9)):
