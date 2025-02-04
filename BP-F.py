@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
