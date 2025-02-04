@@ -6,7 +6,7 @@ data_original = pd.read_csv('data.csv')
 # Show mean, median, min and max values
 print(data_original.describe().loc[['mean', '50%', 'min', 'max']])
 
-#one-hot encoding
+#one-hot encoding of variable Status
 data_original = pd.get_dummies(data_original, columns=['Status'], prefix='Status')
 
 # Convert 'True'/'False' to '1'/'0' for the newly created columns
