@@ -1,217 +1,297 @@
-import numpy as np
-import pandas as pd
-from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
-import matplotlib.pyplot as plt
+# Import required libraries
+import numpy as np  # For numerical computations and array operations
+import pandas as pd  # For data manipulation and reading CSV files
+from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error  # For evaluation metrics
+import matplotlib.pyplot as plt  # For plotting results
 
 class NeuralNet:
     def __init__(self, num_layers, units_per_layer, num_epochs=1000, learning_rate=0.01, 
                  momentum=0.9, activation='sigmoid', validation_split=0.2, batch_size=5):
         """
-        Initialize the Neural Network
+        Initialize the Neural Network with specified architecture and hyperparameters
         
-        Parameters:
-        num_layers (int): Number of layers in the network
-        units_per_layer (list): Number of units in each layer (including input and output layers)
-        num_epochs (int): Number of training epochs
-        learning_rate (float): Learning rate (η)
-        momentum (float): Momentum coefficient (α)
-        activation (str): Activation function ('sigmoid', 'relu', 'tanh', or 'linear')
-        validation_split (float): Fraction of data to use for validation (0 to 1)
-        batch_size (int): Size of mini-batches for training
+        # Parameters explanation:
+        num_layers: Total number of layers including input and output
+        units_per_layer: List specifying number of neurons in each layer
+        num_epochs: Number of complete passes through the training data
+        learning_rate: Step size for gradient descent
+        momentum: Factor for reducing oscillations in weight updates
+        activation: Type of activation function to use
+        validation_split: Portion of data to use for validation
+        batch_size: Number of samples to process before updating weights
         """
-        self.L = num_layers
-        self.n = units_per_layer
-        self.num_epochs = num_epochs
-        self.learning_rate = learning_rate
-        self.momentum = momentum
-        self.fact = activation
-        self.validation_split = validation_split
-        self.batch_size = batch_size
+        # Store network architecture parameters
+        self.L = num_layers  # Total number of layers
+        self.n = units_per_layer  # Units in each layer
+        self.num_epochs = num_epochs  # Training epochs
+        self.learning_rate = learning_rate  # Learning rate η
+        self.momentum = momentum  # Momentum coefficient α
+        self.fact = activation  # Activation function type
+        self.validation_split = validation_split  # Validation data ratio
+        self.batch_size = batch_size  # Mini-batch size
         
-        # Initialize arrays following equations (7)-(9)
-        self.h = [np.zeros(n) for n in self.n]  # Fields h(l)_i
-        self.xi = [np.zeros(n) for n in self.n]  # Activations ξ(l)_i
+        # Initialize neuron activations and fields
+        self.h = [np.zeros(n) for n in self.n]  # h(l)_i: Input fields for each layer
+        self.xi = [np.zeros(n) for n in self.n]  # ξ(l)_i: Neuron activations
         
-        # Initialize weights with small random values
-        self.w = [None]  # w[1] is not used as per document notation
+        # Initialize weights using He initialization
+        self.w = [None]  # w[0] not used (1-based indexing)
         for l in range(1, self.L):
-            # He initialization for weights
+            # He initialization scales weights based on input size
             self.w.append(np.random.randn(self.n[l], self.n[l-1]) * np.sqrt(2.0/self.n[l-1]))
-            
-        # Initialize thresholds
-        self.theta = [None]  # theta[1] is not used
+        
+        # Initialize bias terms (thresholds)
+        self.theta = [None]  # theta[0] not used
         for l in range(1, self.L):
-            self.theta.append(np.random.randn(self.n[l]) * 0.1)
+            self.theta.append(np.random.randn(self.n[l]) * 0.1)  # Small random initial biases
         
-        # Arrays for backpropagation equations (11)-(12)
-        self.delta = [np.zeros(n) for n in self.n]  # Δ(l)_i
+        # Initialize backpropagation variables
+        self.delta = [np.zeros(n) for n in self.n]  # Error terms for each layer
         
-        # Arrays for weight and threshold updates equation (14)
-        self.d_w_prev = [None] + [np.zeros((self.n[l], self.n[l-1])) for l in range(1, self.L)]
-        self.d_theta_prev = [None] + [np.zeros(self.n[l]) for l in range(1, self.L)]
+        # Initialize momentum terms
+        self.d_w_prev = [None] + [np.zeros((self.n[l], self.n[l-1])) for l in range(1, self.L)]  # Previous weight changes
+        self.d_theta_prev = [None] + [np.zeros(self.n[l]) for l in range(1, self.L)]  # Previous bias changes
         
-        self.train_errors = []
-        self.val_errors = []
+        # Initialize error tracking
+        self.train_errors = []  # Store training errors
+        self.val_errors = []  # Store validation errors
     
     def activation(self, h, derivative=False):
-        """Implementation of g(h) and g'(h) from equations (10) and (13)"""
+        """
+        Compute activation function or its derivative
+        
+        Parameters:
+        h: Input value
+        derivative: If True, compute derivative instead of function value
+        """
         if self.fact == 'sigmoid':
             if not derivative:
-                return 1 / (1 + np.exp(-h))  # Equation (10)
+                return 1 / (1 + np.exp(-h))  # Sigmoid function
             else:
                 g_h = self.activation(h)
-                return g_h * (1 - g_h)  # Equation (13)
+                return g_h * (1 - g_h)  # Derivative of sigmoid
         elif self.fact == 'relu':
             if not derivative:
-                return np.maximum(0, h)
+                return np.maximum(0, h)  # ReLU function
             else:
-                return (h > 0).astype(float)
+                return (h > 0).astype(float)  # Derivative of ReLU
         elif self.fact == 'tanh':
             if not derivative:
-                return np.tanh(h)
+                return np.tanh(h)  # Hyperbolic tangent
             else:
-                return 1 - np.tanh(h)**2
+                return 1 - np.tanh(h)**2  # Derivative of tanh
         elif self.fact == 'linear':
             if not derivative:
-                return h
+                return h  # Linear function
             else:
-                return 1
+                return 1  # Derivative of linear function
         else:
             raise ValueError("Invalid activation function specified.")
     
     def feed_forward(self, x):
-        """Implementation of equations (6)-(9)"""
-        # Equation (6): Set input layer
+        """
+        Perform forward pass through the network
+        
+        Parameters:
+        x: Input pattern
+        """
+        # Set input layer activations
         self.xi[0] = x
         
-        # Equations (7)-(8): Calculate activations for each layer
+        # Propagate through hidden layers to output
         for l in range(1, self.L):
-            # Equation (8): Calculate fields
+            # Compute weighted sum and subtract bias
             self.h[l] = np.dot(self.w[l], self.xi[l-1]) - self.theta[l]
-            # Equation (7): Calculate activations
+            # Apply activation function
             self.xi[l] = self.activation(self.h[l])
         
-        # Equation (9): Return output
+        # Return output layer activations
         return self.xi[self.L-1]
-    
+
     def update_weights_batch(self, batch_X, batch_y):
-        """Implementation of equation (16) for partial batched BP"""
-        # Initialize accumulated gradients
+        """
+        Update network weights using mini-batch gradient descent
+        
+        Parameters:
+        batch_X: Input patterns in current batch
+        batch_y: Target outputs for current batch
+        """
+        # Initialize gradient accumulators for batch
         d_w_batch = [None] + [np.zeros_like(w) for w in self.w[1:]]
         d_theta_batch = [None] + [np.zeros_like(t) for t in self.theta[1:]]
         
-        # Accumulate gradients for each pattern in batch
+        # Process each pattern in batch
         for x, z in zip(batch_X, batch_y):
             # Forward pass
             y = self.feed_forward(x)
             
-            # Equation (11): Output layer deltas
+            # Compute output layer error
             self.delta[self.L-1] = self.activation(self.h[self.L-1], derivative=True) * (y - z)
             
-            # Equation (12): Hidden layer deltas
+            # Backpropagate error
             for l in range(self.L-2, 0, -1):
                 self.delta[l] = self.activation(self.h[l], derivative=True) * \
                                np.dot(self.w[l+1].T, self.delta[l+1])
             
             # Accumulate gradients
             for l in range(1, self.L):
+                # Weight gradients
                 d_w_batch[l] += -self.delta[l][:, np.newaxis] @ self.xi[l-1][np.newaxis, :]
+                # Bias gradients
                 d_theta_batch[l] += self.delta[l]
         
-        # Apply updates with momentum (equation 16)
+        # Update weights and biases with momentum
         for l in range(1, self.L):
-            # Weight updates
+            # Update weights
             d_w = self.learning_rate * d_w_batch[l] + self.momentum * self.d_w_prev[l]
             self.w[l] += d_w
             self.d_w_prev[l] = d_w
             
-            # Threshold updates
+            # Update biases
             d_theta = self.learning_rate * d_theta_batch[l] + self.momentum * self.d_theta_prev[l]
             self.theta[l] += d_theta
             self.d_theta_prev[l] = d_theta
     
-    def calculate_error(self, X, y):
-        """Implementation of equation (5) from document"""
-        total_error = 0
-        for x, z in zip(X, y):
-            y_pred = self.feed_forward(x)
-            total_error += np.sum((y_pred - z)**2)
-        return total_error / 2  # No division by len(X) to match equation (5)
+def calculate_error(self, X, y):
+    """
+    Calculate total error for a set of patterns
+    
+    Parameters:
+    X: Input patterns
+    y: Target outputs
+    """
+    total_error = 0
+    # Process each pattern
+    for x, z in zip(X, y):
+        # Get network output
+        y_pred = self.feed_forward(x)
+        # Add squared error to total
+        total_error += np.sum((y_pred - z)**2)
+    # Return total error (not averaged)
+    return total_error / 2
 
-    def fit(self, X, y):
-        """Train the neural network using partial batched BP"""
-        if self.validation_split > 0:
-            split_idx = int(len(X) * (1 - self.validation_split))
-            indices = np.random.permutation(len(X))
-            X = X[indices]
-            y = y[indices]
-            X_train, X_val = X[:split_idx], X[split_idx:]
-            y_train, y_val = y[:split_idx], y[split_idx:]
-        else:
-            X_train, y_train = X, y
-            X_val, y_val = None, None
-        
-        n_samples = len(X_train)
-        
-        for epoch in range(self.num_epochs):
-            # Randomly shuffle patterns at each epoch
-            indices = np.random.permutation(n_samples)
-            X_train = X_train[indices]
-            y_train = y_train[indices]
-            
-            # Process mini-batches
-            for i in range(0, n_samples, self.batch_size):
-                batch_X = X_train[i:i+self.batch_size]
-                batch_y = y_train[i:i+self.batch_size]
-                self.update_weights_batch(batch_X, batch_y)
-            
-            # Calculate errors (total, not averaged)
-            train_error = self.calculate_error(X_train, y_train)
-            self.train_errors.append(train_error)
-            
-            if X_val is not None:
-                val_error = self.calculate_error(X_val, y_val)
-                self.val_errors.append(val_error)
-            
-            if epoch % 100 == 0:
-                print(f"Epoch {epoch}/{self.num_epochs}, Total Error: {train_error:.6f}")
-        
-        return self
+def fit(self, X, y):
+    """
+    Train the neural network
     
-    def predict(self, X):
-        """Make predictions for input X"""
-        return np.array([self.feed_forward(x) for x in X])
+    Parameters:
+    X: Training input patterns
+    y: Training target outputs
+    """
+    # Split data into training and validation sets if specified
+    if self.validation_split > 0:
+        # Calculate split index
+        split_idx = int(len(X) * (1 - self.validation_split))
+        # Randomly shuffle data
+        indices = np.random.permutation(len(X))
+        X = X[indices]
+        y = y[indices]
+        # Perform split
+        X_train, X_val = X[:split_idx], X[split_idx:]
+        y_train, y_val = y[:split_idx], y[split_idx:]
+    else:
+        # Use all data for training if no validation
+        X_train, y_train = X, y
+        X_val, y_val = None, None
     
-    def loss_epochs(self):
-        """Return training and validation error history"""
-        return np.array(self.train_errors), np.array(self.val_errors)
+    n_samples = len(X_train)
+    
+    # Training loop for specified number of epochs
+    for epoch in range(self.num_epochs):
+        # Shuffle training data at start of each epoch
+        indices = np.random.permutation(n_samples)
+        X_train = X_train[indices]
+        y_train = y_train[indices]
+        
+        # Process mini-batches
+        for i in range(0, n_samples, self.batch_size):
+            # Extract current batch
+            batch_X = X_train[i:i+self.batch_size]
+            batch_y = y_train[i:i+self.batch_size]
+            # Update weights using current batch
+            self.update_weights_batch(batch_X, batch_y)
+        
+        # Calculate and store training error
+        train_error = self.calculate_error(X_train, y_train)
+        self.train_errors.append(train_error)
+        
+        # Calculate and store validation error if using validation set
+        if X_val is not None:
+            val_error = self.calculate_error(X_val, y_val)
+            self.val_errors.append(val_error)
+        
+        # Print progress every 100 epochs
+        if epoch % 100 == 0:
+            print(f"Epoch {epoch}/{self.num_epochs}, Total Error: {train_error:.6f}")
+    
+    return self
+
+def predict(self, X):
+    """
+    Make predictions for new input patterns
+    
+    Parameters:
+    X: Input patterns to predict
+    """
+    # Return predictions for all input patterns
+    return np.array([self.feed_forward(x) for x in X])
+
+def loss_epochs(self):
+    """Return error history for training and validation"""
+    return np.array(self.train_errors), np.array(self.val_errors)
 
 
 def scale_data(X, feature_range=(0.1, 0.9)):
-    """Equation (1): Scale features to range [smin, smax]"""
+    """
+    Scale features to specified range
+    
+    Parameters:
+    X: Input data
+    feature_range: Target range for scaled data
+    """
+    # Extract range bounds
     smin, smax = feature_range
+    # Get data bounds
     X_min = X.min(axis=0)
     X_max = X.max(axis=0)
+    # Scale data to target range
     return smin + (smax - smin) * (X - X_min) / (X_max - X_min), (X_min, X_max)
 
 def inverse_scale(X_scaled, X_min, X_max, feature_range=(0.1, 0.9)):
-    """Equation (2): Inverse scaling of data"""
+    """
+    Reverse scaling transformation
+    
+    Parameters:
+    X_scaled: Scaled data
+    X_min, X_max: Original data bounds
+    feature_range: Range used for scaling
+    """
+    # Extract range bounds
     smin, smax = feature_range
+    # Reverse scaling transformation
     return X_min + (X_max - X_min) * (X_scaled - smin) / (smax - smin)
 
 def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_scaled, y_train, y_test, y_min, y_max):
-    """Test different neural network configurations"""
-    # Define configurations to test
+    """
+    Test different neural network architectures and configurations
+    
+    Parameters:
+    X_train_scaled, y_train_scaled: Scaled training data
+    X_test_scaled, y_test_scaled: Scaled test data
+    y_train, y_test: Original (unscaled) target values
+    y_min, y_max: Target value bounds for inverse scaling
+    """
+    # Define different network configurations to test
     configs = [
-    # 3-layer configurations
-    {
-        'layers': [13, 26, 1],
-        'epochs': 1000,
-        'lr': 0.001,
-        'momentum': 0.8,
-        'activation': 'tanh',
-        'description': '3-layer tanh'
-    },
+        # 3-layer configurations
+        {
+            'layers': [13, 26, 1],  # Input layer, hidden layer, output layer
+            'epochs': 1000,
+            'lr': 0.001,
+            'momentum': 0.8,
+            'activation': 'tanh',
+            'description': '3-layer tanh'
+        },
     {
         'layers': [13, 20, 1],
         'epochs': 1200,
@@ -290,15 +370,18 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
     }
     ]
     
-    results = []
+    results = []  # Store results for each configuration
     
+    # Test each configuration
     for i, config in enumerate(configs, 1):
+        # Print configuration details
         print(f"\nTesting Configuration {i}/10:")
         print(f"Description: {config['description']}")
         print(f"Architecture: {config['layers']}")
         print(f"Learning Rate: {config['lr']}, Momentum: {config['momentum']}")
         print(f"Activation: {config['activation']}, Epochs: {config['epochs']}")
         
+        # Create and configure model
         model = NeuralNet(
             num_layers=len(config['layers']),
             units_per_layer=config['layers'],
@@ -316,11 +399,11 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         y_pred_train = model.predict(X_train_scaled)
         y_pred_test = model.predict(X_test_scaled)
         
-        # Inverse scale predictions
+        # Inverse scale predictions back to original range
         y_pred_train = inverse_scale(y_pred_train.reshape(-1, 1), y_min, y_max).ravel()
         y_pred_test = inverse_scale(y_pred_test.reshape(-1, 1), y_min, y_max).ravel()
         
-        # Calculate metrics
+        # Calculate performance metrics
         mse_train = mean_squared_error(y_train, y_pred_train)
         mae_train = mean_absolute_error(y_train, y_pred_train)
         mape_train = mean_absolute_percentage_error(y_train, y_pred_train)
@@ -329,7 +412,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         mae_test = mean_absolute_error(y_test, y_pred_test)
         mape_test = mean_absolute_percentage_error(y_test, y_pred_test)
         
-        # Store results
+        # Store results for this configuration
         results.append({
             'config': config['description'],
             'train_mse': mse_train,
@@ -342,7 +425,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
             'val_error': model.val_errors[-1]
         })
         
-        # Print metrics
+        # Print performance metrics
         print("\nTraining Metrics:")
         print(f"MSE: {mse_train:.4f}")
         print(f"MAE: {mae_train:.4f}")
@@ -364,7 +447,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         plt.tight_layout()
         plt.show()
         
-        # Plot predictions vs actual
+        # Plot predictions vs actual values
         plt.figure(figsize=(10, 6))
         plt.scatter(y_test, y_pred_test, alpha=0.5)
         plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
@@ -374,7 +457,7 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
         plt.tight_layout()
         plt.show()
     
-    # Print summary table
+    # Print summary table of all configurations
     print("\nSummary of all configurations:")
     print("\nTest Metrics:")
     print("Configuration | Test MSE | Test MAE | Test MAPE")
@@ -385,30 +468,31 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
     return results
 
 def main():
+    """Main function to run the neural network experiments"""
     try:
-        # Load data
+        # Load training and test data from CSV files
         train_data = pd.read_csv('traindata.csv')
         test_data = pd.read_csv('testdata.csv')
         
-        # Assuming 'Life expectancy' is the target variable
+        # Separate features and target variable
         X_train = train_data.drop('Life expectancy ', axis=1).values
         y_train = train_data['Life expectancy '].values
         X_test = test_data.drop('Life expectancy ', axis=1).values
         y_test = test_data['Life expectancy '].values
 
-        # Scaling input data
+        # Scale input features
         X_train_scaled, (X_min, X_max) = scale_data(X_train)
         X_test_scaled = scale_data(X_test, feature_range=(0.1, 0.9))[0]
 
-        # Scaling target data (y values)
+        # Scale target values
         y_train_scaled, (y_min, y_max) = scale_data(y_train.reshape(-1, 1))
         y_test_scaled = scale_data(y_test.reshape(-1, 1), feature_range=(0.1, 0.9))[0]
         
-        # Convert back to 1D arrays
+        # Convert target arrays to 1D
         y_train_scaled = y_train_scaled.ravel()
         y_test_scaled = y_test_scaled.ravel()
         
-        # Test different configurations
+        # Test different neural network configurations
         results = test_configurations(
             X_train_scaled, y_train_scaled,
             X_test_scaled, y_test_scaled,
@@ -416,7 +500,7 @@ def main():
             y_min, y_max
         )
         
-        # Find best configuration based on test MSE
+        # Find and print best configuration based on test MSE
         best_config = min(results, key=lambda x: x['test_mse'])
         print("\nBest Configuration:")
         print(f"Configuration: {best_config['config']}")
@@ -427,5 +511,6 @@ def main():
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
+# Entry point of the program
 if __name__ == "__main__":
     main()
