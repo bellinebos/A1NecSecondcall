@@ -7,20 +7,7 @@ import matplotlib.pyplot as plt  # For plotting results
 class NeuralNet:
     def __init__(self, num_layers, units_per_layer, num_epochs=1000, learning_rate=0.01, 
                  momentum=0.9, activation='sigmoid', validation_split=0.2, batch_size=5):
-        """
-        Initialize the Neural Network with specified architecture and hyperparameters
-        
-        # Parameters explanation:
-        num_layers: Total number of layers including input and output
-        units_per_layer: List specifying number of neurons in each layer
-        num_epochs: Number of complete passes through the training data
-        learning_rate: Step size for gradient descent
-        momentum: Factor for reducing oscillations in weight updates
-        activation: Type of activation function to use
-        validation_split: Portion of data to use for validation
-        batch_size: Number of samples to process before updating weights
-        """
-        # Store network architecture parameters
+        #Initialize the Neural Network with specified architecture and hyperparameters
         self.L = num_layers  # Total number of layers
         self.n = units_per_layer  # Units in each layer
         self.num_epochs = num_epochs  # Training epochs
