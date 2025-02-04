@@ -21,10 +21,10 @@ class NeuralNet:
         self.h = [np.zeros(n) for n in self.n]  # h(l)_i: Input fields for each layer
         self.xi = [np.zeros(n) for n in self.n]  # ξ(l)_i: Neuron activations
         
-        # Initialize weights using He initialization
+        # Initialize weights
         self.w = [None]  # w[0] not used (1-based indexing)
         for l in range(1, self.L):
-            # He initialization scales weights based on input size
+            # initialization scales weights based on input size
             self.w.append(np.random.randn(self.n[l], self.n[l-1]) * np.sqrt(2.0/self.n[l-1]))
         
         # Initialize bias terms (thresholds)
@@ -272,12 +272,12 @@ def test_configurations(X_train_scaled, y_train_scaled, X_test_scaled, y_test_sc
     configs = [
         # 3-layer configurations
         {
-            'layers': [13, 26, 1],  # Input layer, hidden layer, output layer
-            'epochs': 1000,
-            'lr': 0.001,
-            'momentum': 0.8,
-            'activation': 'tanh',
-            'description': '3-layer tanh'
+        'layers': [13, 26, 1],  # Input layer, hidden layer, output layer
+        'epochs': 1000,
+        'lr': 0.001,
+        'momentum': 0.8,
+        'activation': 'tanh',
+        'description': '3-layer tanh'
         },
     {
         'layers': [13, 20, 1],
