@@ -1,21 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-
-data_original = pd.read_csv('data.csv')
-
-# Show mean, median, min and max values
-print(data_original.describe().loc[['mean', '50%', 'min', 'max']])
-
-data_original = pd.get_dummies(data_original, columns=['Status'], prefix='Status')
-
-# Convert 'True'/'False' to '1'/'0' for the newly created columns
-data_original['Status_Developed'] = data_original['Status_Developed'].astype(int)
-data_original['Status_Developing'] = data_original['Status_Developing'].astype(int)
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 
 data_original = pd.read_csv('data.csv')
@@ -85,5 +68,3 @@ test_data = pd.concat([X_test, y_test], axis=1)  # Concatenate X and y for testi
 # Save the data to CSV files
 train_data.to_csv('traindata.csv', index=False)  # Save the training data
 test_data.to_csv('testdata.csv', index=False)  # Save the test data
-
-
