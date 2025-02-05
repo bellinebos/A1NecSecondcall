@@ -223,11 +223,6 @@ class NeuralNet:
         # Return predictions for all input patterns
         return np.array([self.feed_forward(x) for x in X])
 
-    def loss_epochs(self):
-        """Return error history for training and validation"""
-        return np.array(self.train_errors), np.array(self.val_errors)
-
-
 def scale_data(X, feature_range=(0.1, 0.9)):
     """
     Scale features to specified range
